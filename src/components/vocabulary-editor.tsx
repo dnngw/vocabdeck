@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Eye, Pencil } from "lucide-react";
 import { Button } from "./ui/button";
@@ -11,13 +11,14 @@ export const blankExample = () => ({ sentenceEn: "", translationInIndonesian: ""
 export const blankSense = () => ({ meaningInIndonesian: "", definitionEn: "", examples: [blankExample()] });
 const blankVocabulary = (): VocabularyInput => ({ word: "", partOfSpeech: "", senses: [blankSense()] });
 export function VocabularyFields({ value, onChange, disabled = false }: { value: VocabularyInput; onChange: (value: VocabularyInput) => void; disabled?: boolean }) {
+  const formId = useId();
   function changeSense(index: number, patch: Partial<VocabularyInput["senses"][number]>) { onChange({ ...value, senses: value.senses.map((s, i) => i === index ? { ...s, ...patch } : s) }); }
   return <fieldset disabled={disabled} className="space-y-5">
     <div className="grid gap-4 sm:grid-cols-2"><label>Kata atau frasa Inggris<input value={value.word} onChange={e => onChange({ ...value, word: e.target.value })} required maxLength={120} placeholder="take" /></label><label>Jenis kata<input list="parts-of-speech" value={value.partOfSpeech} onChange={e => onChange({ ...value, partOfSpeech: e.target.value })} maxLength={40} placeholder="verb, noun, adjective…" /></label></div>
     {value.senses.map((sense, i) => <section key={sense.id || i} className="rounded-2xl border border-border bg-slate-50 p-4 sm:p-6"><div className="mb-5 flex items-center justify-between"><h3 className="font-semibold">Makna {i + 1}</h3>{value.senses.length > 1 && <Button type="button" variant="ghost" className="text-red-700" aria-label={`Hapus makna ${i + 1}`} onClick={() => { if (sense.id && !window.confirm("Hapus makna ini beserta seluruh kartu dan riwayat reviewnya?")) return; onChange({ ...value, senses: value.senses.filter((_, index) => index !== i) }); }}><Trash2 size={16} /></Button>}</div>
       <div className="field-grid"><label>Makna dalam bahasa Indonesia<input value={sense.meaningInIndonesian} onChange={e => changeSense(i, { meaningInIndonesian: e.target.value })} required maxLength={500} placeholder="membutuhkan waktu" /></label><label>Definisi Inggris <span className="font-normal text-muted-foreground">(opsional)</span><input value={sense.definitionEn} onChange={e => changeSense(i, { definitionEn: e.target.value })} maxLength={1000} /></label>
         {sense.examples.map((example, j) => <div key={example.id || j} className="field-grid mt-2 border-t border-border pt-5"><div className="flex items-center justify-between"><h4 className="text-sm font-semibold text-primary">Contoh kalimat {j + 1}</h4>{sense.examples.length > 1 && <Button type="button" variant="ghost" aria-label={`Hapus contoh ${j + 1} pada makna ${i + 1}`} onClick={() => changeSense(i, { examples: sense.examples.filter((_, index) => index !== j) })}><Trash2 size={16} /></Button>}</div>
-          {([['sentenceEn', 'Kalimat bahasa Inggris', 2000], ['translationInIndonesian', 'Terjemahan Indonesia (opsional)', 2000], ['contextExplanationInIndonesian', 'Penjelasan konteks (opsional)', 2000]] as const).map(([key, label, max]) => <label key={key}>{label}<textarea value={example[key]} rows={2} required={key === "sentenceEn"} maxLength={max} onChange={e => changeSense(i, { examples: sense.examples.map((ex, n) => n === j ? { ...ex, [key]: e.target.value } : ex) })} /></label>)}
+          {([['sentenceEn', 'Kalimat bahasa Inggris', 2000], ['translationInIndonesian', 'Terjemahan Indonesia (opsional)', 2000], ['contextExplanationInIndonesian', 'Penjelasan konteks (opsional)', 2000]] as const).map(([key, label, max]) => <div key={key}><label htmlFor={`${formId}-${i}-${j}-${key}`}>{label}</label><textarea id={`${formId}-${i}-${j}-${key}`} className="mt-2" value={example[key]} rows={2} required={key === "sentenceEn"} maxLength={max} onChange={e => changeSense(i, { examples: sense.examples.map((ex, n) => n === j ? { ...ex, [key]: e.target.value } : ex) })} /></div>)}
         </div>)}
         {sense.examples.length < 3 && <Button variant="outline" type="button" onClick={() => changeSense(i, { examples: [...sense.examples, blankExample()] })}><Plus size={16} />Tambah contoh</Button>}
       </div>
