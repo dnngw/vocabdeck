@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["vocabdeck"]
+}
+
+enum Role {
+  user
+  admin
+  @@schema("vocabdeck")
+}
+
+enum AccountStatus {
+  pending
+  active
+  suspended
+  @@schema("vocabdeck")
+}
+
+model Profile {
+  id          String        @id @db.Uuid
+  displayName String        @default("") @map("display_name") @db.VarChar(100)
+  role        Role          @default(user)
+  status      AccountStatus @default(pending)
+  invitedAt   DateTime?     @map("invited_at") @db.Timestamptz(3)
+  acceptedAt  DateTime?     @map("accepted_at") @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  decks       Deck[]
+  progress    CardProgress[]
+  reviews     ReviewLog[]
+  settings    UserSettings?
+  aiUsage     AiUsage[]
+  @@map("profiles")
+  @@schema("vocabdeck")
+}
+
+model Deck {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String   @map("owner_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  description String   @default("") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  owner       Profile  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  vocabulary  VocabularyEntry[]
+  @@index([ownerId])
+  @@map("decks")
+  @@schema("vocabdeck")
+}
+
+model VocabularyEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  deckId       String   @map("deck_id") @db.Uuid
+  word         String   @db.VarChar(120)
+  normalized   String   @db.VarChar(120)
+  partOfSpeech String   @default("") @map("part_of_speech") @db.VarChar(40)
+  source       String   @default("manual") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deck         Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  senses       WordSense[]
+  @@unique([deckId, normalized, partOfSpeech])
+  @@map("vocabulary_entries")
+  @@schema("vocabdeck")
+}
+
+model WordSense {
+  id                  String @id @default(uuid()) @db.Uuid
+  vocabularyId        String @map("vocabulary_id") @db.Uuid
+  meaningInIndonesian String @map("meaning_indonesian") @db.VarChar(500)
+  definitionEn        String @default("") @map("definition_en") @db.VarChar(1000)
+  normalized          String @db.VarChar(500)
+  position            Int    @default(0)
+  vocabulary          VocabularyEntry @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  examples            Example[]
+  cards               Card[]
+  @@unique([vocabularyId, normalized])
+  @@map("word_senses")
+  @@schema("vocabdeck")
+}
+
+model Example {
+  id                             String @id @default(uuid()) @db.Uuid
+  senseId                        String @map("sense_id") @db.Uuid
+  sentenceEn                     String @map("sentence_en") @db.VarChar(2000)
+  translationInIndonesian         String @default("") @map("translation_indonesian") @db.VarChar(2000)
+  contextExplanationInIndonesian  String @default("") @map("context_explanation_indonesian") @db.VarChar(2000)
+  position                       Int    @default(0)
+  sense                          WordSense @relation(fields: [senseId], references: [id], onDelete: Cascade)
+  cards                          Card[]
+  @@index([senseId])
+  @@map("examples")
+  @@schema("vocabdeck")
+}
+
+model Card {
+  id               String @id @default(uuid()) @db.Uuid
+  senseId          String @map("sense_id") @db.Uuid
+  defaultExampleId String @map("default_example_id") @db.Uuid
+  cardType         String @default("context_to_meaning") @map("card_type")
+  active           Boolean @default(true)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  sense            WordSense @relation(fields: [senseId], references: [id], onDelete: Cascade)
+  defaultExample   Example @relation(fields: [defaultExampleId], references: [id], onDelete: Cascade)
+  progress         CardProgress[]
+  @@unique([senseId, cardType])
+  @@index([defaultExampleId])
+  @@map("cards")
+  @@schema("vocabdeck")
+}
+
+model CardProgress {
+  id           String @id @default(uuid()) @db.Uuid
+  userId       String @map("user_id") @db.Uuid
+  cardId       String @map("card_id") @db.Uuid
+  state        Int @default(0)
+  dueAt        DateTime @default(now()) @map("due_at") @db.Timestamptz(3)
+  fsrsData     Json @map("fsrs_data")
+  lastReviewAt DateTime? @map("last_review_at") @db.Timestamptz(3)
+  firstReviewAt DateTime? @map("first_review_at") @db.Timestamptz(3)
+  version      Int @default(0)
+  user         Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card         Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  logs         ReviewLog[]
+  @@unique([userId, cardId])
+  @@index([userId, state, dueAt])
+  @@index([userId, firstReviewAt])
+  @@map("card_progress")
+  @@schema("vocabdeck")
+}
+
+model ReviewLog {
+  id          String @id @default(uuid()) @db.Uuid
+  userId      String @map("user_id") @db.Uuid
+  progressId  String @map("progress_id") @db.Uuid
+  requestId   String @unique @map("request_id") @db.Uuid
+  rating      Int
+  reviewedAt  DateTime @default(now()) @map("reviewed_at") @db.Timestamptz(3)
+  before      Json
+  after       Json
+  user        Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progress    CardProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  @@index([userId, reviewedAt])
+  @@index([progressId])
+  @@map("review_logs")
+  @@schema("vocabdeck")
+}
+
+model UserSettings {
+  userId           String @id @map("user_id") @db.Uuid
+  dailyNewLimit    Int @default(10) @map("daily_new_limit")
+  desiredRetention Float @default(0.9) @map("desired_retention")
+  timezone         String @default("Asia/Jakarta") @db.VarChar(100)
+  user             Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("user_settings")
+  @@schema("vocabdeck")
+}
+
+model AiUsage {
+  id         String @id @default(uuid()) @db.Uuid
+  userId     String @map("user_id") @db.Uuid
+  provider   String @db.VarChar(50)
+  model      String @db.VarChar(100)
+  operation  String @default("generate") @db.VarChar(30)
+  status     String @default("pending") @db.VarChar(30)
+  tokensIn   Int? @map("tokens_in")
+  tokensOut  Int? @map("tokens_out")
+  durationMs Int? @map("duration_ms")
+  errorCode  String? @map("error_code") @db.VarChar(50)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user       Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+  @@index([createdAt, status])
+  @@map("ai_usage")
+  @@schema("vocabdeck")
+}
+
+model AppSetting {
+  key       String @id @db.VarChar(100)
+  value     Json
+  updatedBy String? @map("updated_by") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  @@map("app_settings")
+  @@schema("vocabdeck")
+}
+
+model AuditLog {
+  id        String @id @default(uuid()) @db.Uuid
+  actorId   String @map("actor_id") @db.Uuid
+  targetId  String @map("target_id") @db.Uuid
+  action    String @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  @@index([createdAt])
+  @@map("audit_logs")
+  @@schema("vocabdeck")
+}
