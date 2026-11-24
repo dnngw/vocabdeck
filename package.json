@@ -11,6 +11,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
+    "format": "prettier --write src tests prisma.config.ts *.json *.mjs *.ts",
+    "format:check": "prettier --check src tests prisma.config.ts *.json *.mjs *.ts",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
@@ -41,7 +43,9 @@
     "ts-fsrs": "6.0.1",
     "zod": "4.6.7"
   },
-  "overrides": { "effect": "3.22.5" },
+  "overrides": {
+    "effect": "3.22.5"
+  },
   "devDependencies": {
     "@playwright/test": "1.65.1",
     "@tailwindcss/postcss": "4.3.5",
@@ -52,6 +56,7 @@
     "dotenv": "18.0.10",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.6",
+    "prettier": "3.10.1",
     "prisma": "7.10.1",
     "tailwindcss": "4.3.5",
     "typescript": "6.0.3",
