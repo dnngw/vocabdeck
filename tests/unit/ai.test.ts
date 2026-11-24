@@ -19,21 +19,19 @@ const items = [
 ];
 describe("DeepSeek adapter", () => {
   it("maps structured responses and token usage to the application contract", async () => {
-    const fetcher = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            choices: [
-              {
-                finish_reason: "stop",
-                message: { content: JSON.stringify({ items }) },
-              },
-            ],
-            usage: { prompt_tokens: 42, completion_tokens: 80 },
-          }),
-        ),
-      );
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              finish_reason: "stop",
+              message: { content: JSON.stringify({ items }) },
+            },
+          ],
+          usage: { prompt_tokens: 42, completion_tokens: 80 },
+        }),
+      ),
+    );
     const result = await new DeepSeekProvider(
       "test-model",
       "test-key",
@@ -53,15 +51,13 @@ describe("DeepSeek adapter", () => {
     JSON.stringify({ items: [] }),
     JSON.stringify({ items: [{ word: "take", senses: [] }] }),
   ])("rejects malformed generated content", async (content) => {
-    const fetcher = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            choices: [{ finish_reason: "stop", message: { content } }],
-          }),
-        ),
-      );
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [{ finish_reason: "stop", message: { content } }],
+        }),
+      ),
+    );
     await expect(
       new DeepSeekProvider("test", "secret-key", fetcher).generateVocabulary(
         input,
