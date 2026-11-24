@@ -5,16 +5,33 @@ export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return response;
-  const supabase = createServerClient(url, key, { cookies: {
-    getAll: () => request.cookies.getAll(),
-    setAll(values) {
-      values.forEach(({ name, value }) => request.cookies.set(name, value));
-      response = NextResponse.next({ request });
-      values.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll(values) {
+        values.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        values.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
+      },
     },
-  } });
+  });
   await supabase.auth.getClaims();
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }
-export const config = { matcher: ["/dashboard/:path*", "/decks/:path*", "/vocabulary/:path*", "/study/:path*", "/statistics/:path*", "/settings/:path*", "/ai/:path*", "/admin/:path*", "/api/:path*", "/auth/:path*"] };
+export const config = {
+  matcher: [
+    "/dashboard/:path*",
+    "/decks/:path*",
+    "/vocabulary/:path*",
+    "/study/:path*",
+    "/statistics/:path*",
+    "/settings/:path*",
+    "/ai/:path*",
+    "/admin/:path*",
+    "/api/:path*",
+    "/auth/:path*",
+  ],
+};
