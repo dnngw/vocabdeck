@@ -209,6 +209,21 @@ describe("AI usage reservations", () => {
   });
 });
 describe("admin authorization", () => {
+  it("limits repeated administrative mutations before changing account status", async () => {
+    await db.auditLog.createMany({
+      data: Array.from({ length: 20 }, () => ({
+        actorId: admin.id,
+        targetId: a.id,
+        action: "account_active",
+      })),
+    });
+    await expect(
+      new AdminService(db).setStatus(admin, a.id, { status: "suspended" }),
+    ).rejects.toMatchObject({ status: 429, code: "ADMIN_RATE_LIMIT" });
+    expect(
+      (await db.profile.findUniqueOrThrow({ where: { id: a.id } })).status,
+    ).toBe("active");
+  });
   it("denies normal users, records status changes and blocks a suspended session", async () => {
     const service = new AdminService(db);
     await expect(service.users(a)).rejects.toMatchObject({ status: 403 });

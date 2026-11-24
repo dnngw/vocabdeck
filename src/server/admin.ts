@@ -1,12 +1,30 @@
 import "server-only";
 import { z } from "zod";
 import type { Database } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { requireAdmin, type UserContext } from "./auth";
 import { AppError, notFound } from "./errors";
 import { lockActiveUser } from "./transactions";
 import { aiLimits, aiLimitsSchema } from "./ai";
 export class AdminService {
   constructor(private db: Database) {}
+  private async checkMutationLimit(
+    tx: Prisma.TransactionClient,
+    user: UserContext,
+  ) {
+    const count = await tx.auditLog.count({
+      where: {
+        actorId: user.id,
+        createdAt: { gte: new Date(Date.now() - 60_000) },
+      },
+    });
+    if (count >= 20)
+      throw new AppError(
+        429,
+        "ADMIN_RATE_LIMIT",
+        "Terlalu banyak perubahan admin. Tunggu satu menit sebelum mencoba kembali.",
+      );
+  }
   async users(user: UserContext) {
     requireAdmin(user);
     return this.db.profile.findMany({
@@ -38,6 +56,7 @@ export class AdminService {
       const actor = await tx.profile.findUnique({ where: { id: user.id } });
       if (actor?.role !== "admin")
         throw new AppError(403, "FORBIDDEN", "Akses admin tidak tersedia.");
+      await this.checkMutationLimit(tx, user);
       const target = await tx.profile.findUnique({ where: { id } });
       if (!target) notFound();
       if (target.role === "admin")
@@ -104,6 +123,7 @@ export class AdminService {
         "admin"
       )
         throw new AppError(403, "FORBIDDEN", "Akses admin tidak tersedia.");
+      await this.checkMutationLimit(tx, user);
       const { enabled, ...limits } = input;
       for (const [key, value] of [
         ["ai_enabled", enabled],
