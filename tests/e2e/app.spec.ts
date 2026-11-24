@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { testDb } from "./database";
-import { learnerId, otherId } from "./fixtures";
+import { learnerId, otherId, adminId } from "./fixtures";
 const db = testDb();
 async function login(page: Page, email = "learner@example.test") {
   await page.goto("/login");
@@ -28,8 +28,83 @@ test.beforeEach(async () => {
     where: { ownerId: { in: [learnerId, otherId] } },
   });
   await db.userSettings.deleteMany({ where: { userId: learnerId } });
+  await db.appSetting.upsert({
+    where: { key: "ai_enabled" },
+    create: { key: "ai_enabled", value: false, updatedBy: adminId },
+    update: { value: false, updatedBy: adminId },
+  });
 });
 test.afterAll(() => db.$disconnect());
+
+test("AI preview stays unsaved until edited selections are explicitly committed", async ({
+  page,
+}) => {
+  const deck = await db.deck.create({
+    data: { name: "AI preview", ownerId: learnerId },
+  });
+  await db.appSetting.update({
+    where: { key: "ai_enabled" },
+    data: { value: true },
+  });
+  const items = ["take", "run"].map((word) => ({
+    word,
+    partOfSpeech: "verb",
+    senses: [
+      {
+        meaningInIndonesian: word === "take" ? "ambil" : "berlari",
+        definitionEn: "",
+        examples: [
+          {
+            sentenceEn: word === "take" ? "Take the book." : "I run daily.",
+            translationInIndonesian: "",
+            contextExplanationInIndonesian: "",
+          },
+        ],
+      },
+    ],
+  }));
+  // Only generation transport is stubbed. Preview validation and saving use the
+  // real authorized API/database; provider/quota behavior has integration tests.
+  await page.route("**/api/ai/generate", (route) =>
+    route.fulfill({ json: { data: { items, remaining: 9 }, error: null } }),
+  );
+  await login(page);
+  await page.goto(`/ai/generate?deckId=${deck.id}`);
+  await page.getByLabel("Buat dari").selectOption("topic");
+  await page
+    .getByLabel("Topik yang ingin dipahami")
+    .fill("Everyday activities");
+  await page.getByRole("button", { name: "Buat preview" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Periksa pilihanmu" }),
+  ).toBeVisible();
+  expect(await db.vocabularyEntry.count({ where: { deckId: deck.id } })).toBe(
+    0,
+  );
+  await page.getByRole("checkbox", { name: "Pilih “run”" }).uncheck();
+  await page
+    .getByText("Edit kata dan konteks", { exact: true })
+    .first()
+    .click();
+  await page
+    .getByLabel("Makna dalam bahasa Indonesia")
+    .first()
+    .fill("mengambil");
+  await page
+    .getByRole("button", { name: "Periksa validasi dan duplikat" })
+    .click();
+  await page.getByRole("button", { name: "Simpan 1 kata terpilih" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Pilihanmu sudah tersimpan" }),
+  ).toBeVisible();
+  const entries = await db.vocabularyEntry.findMany({
+    where: { deckId: deck.id },
+    include: { senses: true },
+  });
+  expect(entries).toHaveLength(1);
+  expect(entries[0].senses[0].meaningInIndonesian).toBe("mengambil");
+  await noOverflow(page);
+});
 
 test("public pages have no signup and private routes require login", async ({
   page,
@@ -125,15 +200,13 @@ test("CSV preview does not write; import works while AI is disabled", async ({
   });
   await login(page);
   await page.goto(`/decks/${deck.id}/import`);
-  await page
-    .getByLabel(/File CSV/)
-    .setInputFiles({
-      name: "words.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from(
-        "word,meaning_indonesian,sentence_en\nrun,berlari,I run every morning.\nrun,,It runs well.",
-      ),
-    });
+  await page.getByLabel(/File CSV/).setInputFiles({
+    name: "words.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      "word,meaning_indonesian,sentence_en\nrun,berlari,I run every morning.\nrun,,It runs well.",
+    ),
+  });
   await page.getByRole("button", { name: "Periksa CSV" }).click();
   await expect(
     page.getByRole("heading", { name: "Preview impor" }),

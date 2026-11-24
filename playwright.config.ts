@@ -57,7 +57,9 @@ export default defineConfig({
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test-publishable-key",
         DATABASE_URL:
           process.env.TEST_RUNTIME_DATABASE_URL || runtimeUrl?.toString() || "",
-        AI_ENABLED: "false",
+        AI_ENABLED: "true",
+        AI_MODEL: "test-model",
+        DEEPSEEK_API_KEY: "test-only-not-a-real-key",
       },
     },
   ],
