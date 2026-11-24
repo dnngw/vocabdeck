@@ -7,14 +7,125 @@ import { ContentService } from "@/server/content";
 import { StatisticsService } from "@/server/statistics";
 import { StudyService } from "@/server/study";
 export default async function Dashboard() {
-  const user = await pageUser(); const db = getDb();
-  const [decks, stats, queue] = await Promise.all([new ContentService(db).listDecks(user), new StatisticsService(db).summary(user), new StudyService(db).queue(user)]);
-  return <>
-    <header className="mb-8 flex flex-wrap items-center justify-between gap-4"><div><p className="eyebrow mb-3">Selangkah lebih paham</p><h1 className="page-title">Halo, {user.displayName || "teman belajar"}.</h1><p className="mt-2 text-muted-foreground">Luangkan waktu untuk satu konteks baru hari ini.</p></div><Button variant="outline" asChild><Link href="/vocabulary/new"><Plus size={18} />Tambah kata</Link></Button></header>
-    <section className="relative overflow-hidden rounded-3xl bg-[#143d36] p-7 text-white sm:p-9"><div className="absolute -top-20 -right-16 h-64 w-64 rounded-full border-[35px] border-white/5" /><p className="text-sm text-emerald-200">SESI HARI INI</p><h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-tight">{queue.due + queue.newAvailable > 0 ? "Ingatan yang kuat dimulai dari kebiasaan kecil." : "Ruang untuk kata-kata baru."}</h2><p className="mt-4 max-w-lg leading-relaxed text-emerald-100">{queue.due + queue.newAvailable > 0 ? `${queue.due} kartu review dan ${queue.newAvailable} kartu baru siap dipelajari.` : decks.length ? "Semua review sudah selesai. Tambahkan vocabulary atau kembali saat jadwal berikutnya." : "Buat deck pertamamu, tambahkan kata beserta konteksnya, lalu mulai belajar."}</p><Button asChild className="mt-7 bg-white text-[#143d36] hover:bg-emerald-50"><Link href={queue.due + queue.newAvailable > 0 ? "/study" : "/decks"}>{queue.due + queue.newAvailable > 0 ? <><BookOpen size={18} />Mulai sesi belajar</> : <><Layers3 size={18} />{decks.length ? "Buka deck saya" : "Buat deck pertama"}</>}</Link></Button></section>
-    <div className="my-6 grid grid-cols-2 gap-4 xl:grid-cols-4">{[
-      ["Review hari ini", stats.today, CalendarCheck], ["Menunggu review", stats.due, BookOpen], ["Kata tersimpan", stats.vocabulary, Layers3], ["Makna dipelajari", stats.senses, Sparkles],
-    ].map(([label, value, Icon]) => { const MetricIcon = Icon as typeof BookOpen; return <div className="panel" key={String(label)}><div className="flex items-center justify-between gap-2 text-sm text-muted-foreground"><span>{String(label)}</span><MetricIcon size={18} className="shrink-0 text-primary" /></div><p className="mt-4 text-3xl font-semibold tracking-tight">{String(value)}</p></div>; })}</div>
-    <section className="mt-10"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold">Koleksi deck</h2><Link href="/decks" className="text-sm font-semibold text-primary">Lihat semua</Link></div>{decks.length ? <div className="grid gap-4 sm:grid-cols-2">{decks.slice(0, 4).map(deck => <Link href={`/decks/${deck.id}`} key={deck.id} className="panel transition-colors hover:border-primary"><Layers3 size={22} className="mb-5 text-primary" /><h3 className="font-semibold">{deck.name}</h3><p className="mt-2 text-sm text-muted-foreground">{deck._count.vocabulary} kata · {deck.description || "Koleksi vocabulary pribadi"}</p></Link>)}</div> : <div className="panel text-center"><Layers3 className="mx-auto my-4 text-primary" size={32} /><h3 className="font-semibold">Koleksimu mulai di sini</h3><p className="mx-auto mt-2 mb-5 max-w-md text-sm text-muted-foreground">Kelompokkan kata berdasarkan topik, buku, atau hal yang ingin kamu pahami.</p><Button asChild variant="outline"><Link href="/decks">Buat deck</Link></Button></div>}</section>
-  </>;
+  const user = await pageUser();
+  const db = getDb();
+  const [decks, stats, queue] = await Promise.all([
+    new ContentService(db).listDecks(user),
+    new StatisticsService(db).summary(user),
+    new StudyService(db).queue(user),
+  ]);
+  return (
+    <>
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="eyebrow mb-3">Selangkah lebih paham</p>
+          <h1 className="page-title">
+            Halo, {user.displayName || "teman belajar"}.
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            Luangkan waktu untuk satu konteks baru hari ini.
+          </p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/vocabulary/new">
+            <Plus size={18} />
+            Tambah kata
+          </Link>
+        </Button>
+      </header>
+      <section className="relative overflow-hidden rounded-3xl bg-[#143d36] p-7 text-white sm:p-9">
+        <div className="absolute -top-20 -right-16 h-64 w-64 rounded-full border-[35px] border-white/5" />
+        <p className="text-sm text-emerald-200">SESI HARI INI</p>
+        <h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-tight">
+          {queue.due + queue.newAvailable > 0
+            ? "Ingatan yang kuat dimulai dari kebiasaan kecil."
+            : "Ruang untuk kata-kata baru."}
+        </h2>
+        <p className="mt-4 max-w-lg leading-relaxed text-emerald-100">
+          {queue.due + queue.newAvailable > 0
+            ? `${queue.due} kartu review dan ${queue.newAvailable} kartu baru siap dipelajari.`
+            : decks.length
+              ? "Semua review sudah selesai. Tambahkan vocabulary atau kembali saat jadwal berikutnya."
+              : "Buat deck pertamamu, tambahkan kata beserta konteksnya, lalu mulai belajar."}
+        </p>
+        <Button
+          asChild
+          className="mt-7 bg-white text-[#143d36] hover:bg-emerald-50"
+        >
+          <Link href={queue.due + queue.newAvailable > 0 ? "/study" : "/decks"}>
+            {queue.due + queue.newAvailable > 0 ? (
+              <>
+                <BookOpen size={18} />
+                Mulai sesi belajar
+              </>
+            ) : (
+              <>
+                <Layers3 size={18} />
+                {decks.length ? "Buka deck saya" : "Buat deck pertama"}
+              </>
+            )}
+          </Link>
+        </Button>
+      </section>
+      <div className="my-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {[
+          ["Review hari ini", stats.today, CalendarCheck],
+          ["Menunggu review", stats.due, BookOpen],
+          ["Kata tersimpan", stats.vocabulary, Layers3],
+          ["Makna dipelajari", stats.senses, Sparkles],
+        ].map(([label, value, Icon]) => {
+          const MetricIcon = Icon as typeof BookOpen;
+          return (
+            <div className="panel" key={String(label)}>
+              <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                <span>{String(label)}</span>
+                <MetricIcon size={18} className="shrink-0 text-primary" />
+              </div>
+              <p className="mt-4 text-3xl font-semibold tracking-tight">
+                {String(value)}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+      <section className="mt-10">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Koleksi deck</h2>
+          <Link href="/decks" className="text-sm font-semibold text-primary">
+            Lihat semua
+          </Link>
+        </div>
+        {decks.length ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {decks.slice(0, 4).map((deck) => (
+              <Link
+                href={`/decks/${deck.id}`}
+                key={deck.id}
+                className="panel transition-colors hover:border-primary"
+              >
+                <Layers3 size={22} className="mb-5 text-primary" />
+                <h3 className="font-semibold">{deck.name}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {deck._count.vocabulary} kata ·{" "}
+                  {deck.description || "Koleksi vocabulary pribadi"}
+                </p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="panel text-center">
+            <Layers3 className="mx-auto my-4 text-primary" size={32} />
+            <h3 className="font-semibold">Koleksimu mulai di sini</h3>
+            <p className="mx-auto mt-2 mb-5 max-w-md text-sm text-muted-foreground">
+              Kelompokkan kata berdasarkan topik, buku, atau hal yang ingin kamu
+              pahami.
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/decks">Buat deck</Link>
+            </Button>
+          </div>
+        )}
+      </section>
+    </>
+  );
 }
