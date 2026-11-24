@@ -25,7 +25,7 @@ Menggunakan jalur A: Prisma backend-only dengan otorisasi eksplisit, role runtim
 
 RLS diaktifkan dengan policy `runtime_access` untuk role `vocabdeck_app`. Policy ini mengizinkan role server melakukan query; **policy ini bukan pembatas tenant**. Relasi `deck.ownerId` dan `progress.userId` adalah filter wajib di service. Query statistik menggunakan parameter binding. Endpoint API memverifikasi sesi untuk setiap request, tanpa bergantung hanya pada layout/proxy.
 
-Role runtime tidak dapat membuat profil, mengubah role, atau mengubah riwayat review/audit. Update status profil hanya tersedia melalui service admin. `anon` dan `authenticated` tidak memiliki akses schema. Migrations berjalan dengan credential terpisah.
+Role runtime tidak dapat membuat profil, mengubah role, atau mengubah riwayat review/audit. Update status profil hanya tersedia melalui service admin, dengan batas 20 mutasi/admin/menit yang diperiksa di bawah lock profil. `anon` dan `authenticated` tidak memiliki akses schema. Migrations berjalan dengan credential terpisah.
 
 Trigger Auth hanya mempercayai kolom server `invited_at` dan `email_confirmed_at`. Metadata publik hanya dapat memberi display name yang dipotong hingga 100 karakter. Konfirmasi email tidak dapat mengaktifkan ulang akun suspended. Public signup juga harus dinonaktifkan di Supabase, karena konfigurasi itu berada di luar repository.
 

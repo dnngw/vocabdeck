@@ -54,7 +54,7 @@ Screenshot/trace kegagalan ada di `test-results/`; laporan HTML di `playwright-r
 
 ## Hasil verifikasi implementasi awal
 
-Pada 24 November 2026: 15 unit test, 18 integration test PostgreSQL, dan 10 skenario browser desktop/mobile tersedia. Lihat hasil command masing-masing untuk status terbaru. Pemeriksaan ini tidak mengklaim pengiriman email Supabase atau request DeepSeek nyata sudah diuji.
+Pada 24 November 2026: 15 unit test, 19 integration test PostgreSQL, dan 10 skenario browser desktop/mobile tersedia. Lihat hasil command masing-masing untuk status terbaru. Pemeriksaan ini tidak mengklaim pengiriman email Supabase atau request DeepSeek nyata sudah diuji.
 
 ## Gerbang staging sebelum beta
 
