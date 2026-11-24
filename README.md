@@ -1,19 +1,22 @@
 # Vocabdeck
 
-Aplikasi vocabulary bahasa Inggris berbasis konteks, berbahasa Indonesia, dengan akses melalui undangan. Stack: Next.js App Router, React, TypeScript, Tailwind/shadcn, Supabase Auth + PostgreSQL, Prisma, dan ts-fsrs.
+An context-based English vocabulary app with. 
 
-## Fitur yang tersedia
+## Technology
+Stack: Next.js App Router, React, TypeScript, Tailwind/shadcn, Supabase Auth + PostgreSQL, Prisma, and ts-fsrs.
 
-- Deck pribadi, pencarian vocabulary, hingga 5 makna/kata dan 3 contoh/makna.
-- Kartu context-to-meaning dengan FSRS, daily new limit, riwayat atomik, dan retry idempoten.
-- Impor CSV melalui preview/seleksi, dengan validasi dan deduplikasi.
-- Adapter DeepSeek: hasil bisa diedit/dipilih, kuota atomik, timeout, kill switch, dan log pemakaian.
-- Statistik pribadi, timezone, pengaturan review, serta admin suspend/reactivate.
-- Login, penerimaan undangan, reset password, dan isolasi data antar-pengguna.
+## Available Features
 
-Implementasi lokal sudah tersedia. Peluncuran masih membutuhkan proyek Supabase, konfigurasi SMTP, credential, serta validasi integrasi nyata di staging. Tidak ada deployment atau remote Git yang dibuat otomatis.
+- Personal decks, vocabulary search, up to 5 meanings per word and 3 examples per meaning.
+- Context-to-meaning cards with FSRS, a daily new-card limit, atomic review history, and idempotent retries.
+- CSV import through preview/selection, with validation and deduplication.
+- DeepSeek adapter: results can be edited/selected, with atomic quotas, timeouts, a kill switch, and usage logging.
+- Personal statistics, timezone and review settings, plus admin suspend/reactivate.
+- Login, invitation acceptance, password reset, and data isolation between users.
 
-## Pengembangan lokal
+The local implementation is ready. Launching still requires a Supabase project, SMTP configuration, credentials, and validation of the real integrations in staging. No deployment or Git remote is created automatically.
+
+## Local Development
 
 ```sh
 nvm use
@@ -23,22 +26,12 @@ npm run db:generate
 npm run dev
 ```
 
-Buka http://localhost:3000. Halaman publik bisa dibuka tanpa kredensial. Fitur privat membutuhkan Supabase dan database; ikuti [panduan setup](docs/SETUP.md). Jangan gunakan data produksi untuk pengujian.
+Open http://localhost:3000. Public pages can be opened without credentials. Private features require Supabase and a database; follow the [setup guide](docs/SETUP.md). Do not use production data for testing.
 
-## Pemeriksaan
+## Checks
 
 ```sh
 npm run check
 npm run build
 ```
 
-[Panduan pengujian](docs/TESTING.md) menjelaskan database integrasi dan Playwright. Tes provider dan browser menggunakan fixture, sehingga tidak memakai saldo AI atau mengirim email.
-
-## Dokumentasi
-
-- [Setup Supabase, akun admin, AI, dan Vercel](docs/SETUP.md)
-- [Arsitektur dan batas keamanan](docs/ARCHITECTURE.md)
-- [Pengujian dan verifikasi staging](docs/TESTING.md)
-- [Backup, restore, dan operasional](docs/OPERATIONS.md)
-
-PRD dan file environment aktif sengaja diabaikan oleh Git. Semua migrasi aplikasi disimpan di repository.
