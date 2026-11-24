@@ -36,6 +36,22 @@ export class ContentService {
     const result = await this.db.vocabularyEntry.deleteMany({ where: { id, deck: { ownerId: user.id } } });
     if (!result.count) notFound(); return { deleted: true };
   }
+  async previewBatch(user: UserContext, deckId: string, raw: unknown[]) {
+    if (raw.length < 1 || raw.length > 20) throw new AppError(422, "INVALID_COUNT", "Pilih 1–20 kata.");
+    const items = raw.map(item => vocabularySchema.parse(item));
+    if (!await this.db.deck.findFirst({ where: { id: deckId, ownerId: user.id } })) notFound();
+    const existing = await this.db.vocabularyEntry.findMany({ where: { deckId, deck: { ownerId: user.id }, normalized: { in: items.map(i => normalize(i.word)) } }, include: { senses: true } });
+    const seen = new Set(existing.flatMap(e => e.senses.map(s => `${e.normalized}\0${e.partOfSpeech}\0${s.normalized}`)));
+    return items.map(item => {
+      let duplicateSenses = 0;
+      for (const sense of item.senses) {
+        const key = `${normalize(item.word)}\0${item.partOfSpeech}\0${normalize(sense.meaningInIndonesian)}`;
+        if (seen.has(key)) duplicateSenses++;
+        seen.add(key);
+      }
+      return { duplicateSenses, allDuplicate: duplicateSenses === item.senses.length };
+    });
+  }
   async addBatch(user: UserContext, deckId: string, raw: unknown[], source = "manual") {
     if (raw.length < 1 || raw.length > 500) throw new AppError(422, "INVALID_COUNT", "Pilih 1–500 entri.");
     const items = raw.map(item => vocabularySchema.parse(item));

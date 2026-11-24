@@ -7,6 +7,8 @@ import { ContentService } from "@/server/content";
 import { ImportService } from "@/server/import";
 import { StudyService } from "@/server/study";
 import { StatisticsService } from "@/server/statistics";
+import { AIService, aiLimits, aiProvider } from "@/server/ai";
+import { AdminService } from "@/server/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +53,19 @@ async function handle(request: Request, context: Context) {
       if (method === "GET") return study.settings(user);
       if (method === "PATCH") return study.updateSettings(user, await readJson(request));
     }
+    if (route === "ai/generate" && method === "POST") {
+      const limits = aiLimits();
+      if (!limits.enabled) throw new AppError(503, "AI_DISABLED", "AI belum diaktifkan oleh pengelola. Input manual dan CSV tetap tersedia.");
+      return new AIService(db, aiProvider(), limits).generate(user, await readJson(request, 16_000));
+    }
+    if (route === "ai/preview" && method === "POST") {
+      const input = z.object({ deckId: idSchema, items: z.array(z.unknown()).min(1).max(20) }).parse(await readJson(request, 1_000_000));
+      return content.previewBatch(user, input.deckId, input.items);
+    }
+    if (route === "admin/users" && method === "GET") return new AdminService(db).users(user);
+    if (path[0] === "admin" && path[1] === "users" && path.length === 3 && method === "PATCH") return new AdminService(db).setStatus(user, idSchema.parse(path[2]), await readJson(request));
+    if (route === "admin/usage" && method === "GET") return new AdminService(db).usage(user);
+    if (route === "admin/settings" && method === "PATCH") return new AdminService(db).updateAi(user, await readJson(request));
     throw new AppError(404, "NOT_FOUND", "Endpoint tidak ditemukan.");
   });
 }
