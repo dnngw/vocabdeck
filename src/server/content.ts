@@ -76,7 +76,7 @@ export class ContentService {
     }, { timeout: 30_000 });
   }
   private async createSense(tx: Prisma.TransactionClient, userId: string, vocabularyId: string, input: VocabularyInput["senses"][number], position: number, scheduler: StudyScheduler) {
-    const sense = await tx.wordSense.create({ data: { vocabularyId, meaningInIndonesian: input.meaningInIndonesian, normalized: normalize(input.meaningInIndonesian), definitionEn: input.definitionEn, position, examples: { create: input.examples.map(({ id: _id, ...example }, i) => ({ ...example, position: i })) } }, include: { examples: { orderBy: { position: "asc" } } } });
+    const sense = await tx.wordSense.create({ data: { vocabularyId, meaningInIndonesian: input.meaningInIndonesian, normalized: normalize(input.meaningInIndonesian), definitionEn: input.definitionEn, position, examples: { create: input.examples.map((example, i) => ({ sentenceEn: example.sentenceEn, translationInIndonesian: example.translationInIndonesian, contextExplanationInIndonesian: example.contextExplanationInIndonesian, position: i })) } }, include: { examples: { orderBy: { position: "asc" } } } });
     const now = new Date(); const card = scheduler.newCard(now);
     await tx.card.create({ data: { senseId: sense.id, defaultExampleId: sense.examples[0].id, progress: { create: { userId, dueAt: now, fsrsData: scheduler.serialize(card) } } } });
     return sense;
