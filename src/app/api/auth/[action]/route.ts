@@ -18,7 +18,8 @@ export async function POST(request: Request, context: { params: Promise<{ action
       try { await requireUser(); } catch (error) { await supabase.auth.signOut(); throw error; }
     } else if (action === "reset") {
       const { email } = z.object({ email: z.email().max(254) }).parse(await readJson(request, 4096));
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/password` });
+      const base = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${base}/auth/password` });
       if (error?.status === 429) throw new AppError(429, "RATE_LIMIT", "Terlalu banyak permintaan. Coba beberapa saat lagi.");
       // Same response regardless of account existence.
     } else if (action === "password") {
