@@ -6,6 +6,9 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+next-env.d.ts
+*.dump
+*.backup
 .env
 .env.*
 !.env.example
