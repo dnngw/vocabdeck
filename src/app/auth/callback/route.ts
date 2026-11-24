@@ -21,6 +21,8 @@ export async function GET(request: Request) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) return redirectTo("/auth/password");
     }
-  } catch { /* Do not expose provider or configuration details. */ }
+  } catch {
+    /* Do not expose provider or configuration details. */
+  }
   return redirectTo("/login?error=invalid_link");
 }
